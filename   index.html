@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.3">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="uk"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1">&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1">&lt;title&gt;Перевірка дублікатів&lt;/title&gt;</p>
+<p class="p1">&lt;style&gt;</p>
+<p class="p1">body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; }</p>
+<p class="p1">textarea { width: 100%; height: 200px; }</p>
+<p class="p1">button { padding: 10px 20px; margin-top: 10px; }</p>
+<p class="p1">pre { background: #f4f4f4; padding: 10px; }</p>
+<p class="p1">&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;h2&gt;🔁 Перевірка дублікатів номерів&lt;/h2&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;textarea placeholder="Встав числа сюди (Ctrl+V) або завантаж CSV"&gt;&lt;/textarea&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;br&gt;</p>
+<p class="p1">&lt;input type="file" accept=".csv"&gt;</p>
+<p class="p1">&lt;br&gt;&lt;br&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;button onclick="checkDuplicates()"&gt;Перевірити&lt;/button&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;h3&gt;Результат:&lt;/h3&gt;</p>
+<p class="p1">&lt;pre id="result"&gt;&lt;/pre&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1">function parseText(text) {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>return text</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.split(/[\s,;]+/)</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.map(x =&gt; x.trim())</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.filter(x =&gt; x.length &gt; 0);</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">function checkDuplicates() {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const textarea = document.querySelector("textarea");</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const numbers = parseText(textarea.value);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const map = {};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>numbers.forEach(n =&gt; map[n] = (map[n] || 0) + 1);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>let output = "";</p>
+<p class="p1"><span class="Apple-converted-space">  </span>for (const [num, count] of Object.entries(map)) {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>if (count &gt; 1) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>output += `${num} — ${count} рази\n`;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p1"><span class="Apple-converted-space">  </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>document.getElementById("result").textContent =</p>
+<p class="p1"><span class="Apple-converted-space">    </span>output || "Дублікатів не знайдено";</p>
+<p class="p1">}</p>
+<p class="p2"><br></p>
+<p class="p1">document.querySelector("input[type=file]").addEventListener("change", e =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">  </span>const file = e.target.files[0];</p>
+<p class="p1"><span class="Apple-converted-space">  </span>if (!file) return;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>const reader = new FileReader();</p>
+<p class="p1"><span class="Apple-converted-space">  </span>reader.onload = () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">    </span>document.querySelector("textarea").value = reader.result;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>};</p>
+<p class="p1"><span class="Apple-converted-space">  </span>reader.readAsText(file);</p>
+<p class="p1">});</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
