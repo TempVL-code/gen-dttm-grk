@@ -14,6 +14,7 @@
       --accent: #58a6ff;
       --error: #f85149;
       --success: #3fb950;
+      --muted: #8b949e;
     }
     [data-theme="light"] {
       --bg: #ffffff;
@@ -23,6 +24,7 @@
       --accent: #0969da;
       --error: #d73a49;
       --success: #2ea44f;
+      --muted: #57606a;
     }
 
     body {
@@ -62,7 +64,7 @@
     @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
 
     label { display: block; margin-bottom: 0.4rem; font-weight: 500; }
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 0.6rem 0.9rem;
       background: var(--card);
@@ -70,9 +72,13 @@
       color: var(--text);
       border-radius: 6px;
       font-size: 1rem;
+      box-sizing: border-box;
     }
+    textarea { resize: vertical; font-family: monospace; }
+    input[readonly] { background: var(--border); cursor: not-allowed; opacity: 0.7; }
 
     .full-width { grid-column: 1 / -1; }
+    .help-text { font-size: 0.85rem; color: var(--muted); margin-top: 0.3rem; display: block; }
 
     .btn {
       padding: 0.7rem 1.4rem;
@@ -147,10 +153,6 @@
         <input type="date" id="end" required>
       </div>
       <div>
-        <label for="count">Кількість записів</label>
-        <input type="number" id="count" min="1" max="10000" value="100" required>
-      </div>
-      <div>
         <label for="dateFmt">Формат дати</label>
         <select id="dateFmt">
           <option value="0">YYYY-MM-DD</option>
@@ -167,6 +169,16 @@
           <option value="2">HH:MM</option>
         </select>
       </div>
+      <div>
+        <label for="count">Кількість записів</label>
+        <input type="number" id="count" min="1" max="100000" value="100" required>
+      </div>
+      <div class="full-width">
+        <label for="uniqueIds">Унікальні ідентифікатори (з буфера)</label>
+        <textarea id="uniqueIds" rows="5" placeholder="Вставте сюди список номерів (кожен з нового рядка)&#10;Наприклад:&#10;420778508935&#10;420778516894"></textarea>
+        <span class="help-text">Якщо вставити сюди дані, кількість записів розрахується автоматично.</span>
+      </div>
+      
       <div class="full-width" style="display:flex; gap:1rem; flex-wrap:wrap; margin-top:1.2rem;">
         <button type="submit" class="btn">Згенерувати</button>
         <button type="button" id="clearBtn" class="btn btn-secondary">Очистити</button>
@@ -182,7 +194,7 @@
     <div style="max-height:500px; overflow:auto; border:1px solid var(--border); border-radius:6px;">
       <table id="previewTable">
         <thead>
-          <tr>
+          <tr id="tableHeaderRow">
             <th>№</th>
             <th>DateTime</th>
           </tr>
@@ -221,6 +233,25 @@ themeBtn.addEventListener('click', () => {
 });
 
 // ──────────────────────────────────────────────
+// Логіка введення ідентифікаторів
+// ──────────────────────────────────────────────
+const uniqueIdsInput = document.getElementById('uniqueIds');
+const countInput = document.getElementById('count');
+let parsedUniqueIds = [];
+let hasUniqueIds = false;
+
+uniqueIdsInput.addEventListener('input', () => {
+  // Розбиваємо текст на рядки, прибираємо пробіли та порожні рядки
+  const lines = uniqueIdsInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length > 0) {
+    countInput.value = lines.length;
+    countInput.readOnly = true;
+  } else {
+    countInput.readOnly = false;
+  }
+});
+
+// ──────────────────────────────────────────────
 // Основна логіка
 // ──────────────────────────────────────────────
 let generatedData = [];
@@ -230,6 +261,7 @@ const errorBox = document.getElementById('errorBox');
 const resultSection = document.getElementById('resultSection');
 const resultInfo = document.getElementById('resultInfo');
 const previewBody = document.getElementById('previewBody');
+const tableHeaderRow = document.getElementById('tableHeaderRow');
 
 form.addEventListener('submit', e => {
   e.preventDefault();
@@ -238,9 +270,17 @@ form.addEventListener('submit', e => {
 
   const startStr = document.getElementById('start').value;
   const endStr   = document.getElementById('end').value;
-  const count    = parseInt(document.getElementById('count').value);
+  let count      = parseInt(countInput.value);
   const dateFmt  = parseInt(document.getElementById('dateFmt').value);
   const timeFmt  = parseInt(document.getElementById('timeFmt').value);
+
+  // Отримуємо масив ID
+  parsedUniqueIds = uniqueIdsInput.value.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  hasUniqueIds = parsedUniqueIds.length > 0;
+  
+  if (hasUniqueIds) {
+      count = parsedUniqueIds.length;
+  }
 
   if (!startStr || !endStr) {
     showError('Вкажіть обидві дати');
@@ -255,8 +295,8 @@ form.addEventListener('submit', e => {
     return;
   }
 
-  if (isNaN(count) || count < 1 || count > 10000) {
-    showError('Кількість має бути від 1 до 10000');
+  if (isNaN(count) || count < 1) {
+    showError('Кількість має бути більше 0');
     return;
   }
 
@@ -276,10 +316,8 @@ form.addEventListener('submit', e => {
     return;
   }
 
-  // Генерація з випадковим вибором дня
-  generatedData = [];
-  let globalIndex = 1;
-
+  // 1. Генерація дат
+  let tempDates = [];
   for (let i = 0; i < count; i++) {
     const randomDayIndex = Math.floor(Math.random() * workingDays.length);
     const dayDate = workingDays[randomDayIndex];
@@ -288,40 +326,50 @@ form.addEventListener('submit', e => {
     const m  = dayDate.getMonth();
     const dd = dayDate.getDate();
 
+    // Робочий час: від 09:00 до 18:59
     const h   = 9 + Math.floor(Math.random() * 10);
     const min = Math.floor(Math.random() * 60);
     const sec = Math.floor(Math.random() * 60);
 
+    tempDates.push(new Date(y, m, dd, h, min, sec));
+  }
+
+  // 2. Сортуємо згенеровані дати хронологічно
+  tempDates.sort((a, b) => a - b);
+
+  // 3. Формуємо фінальний масив
+  generatedData = [];
+  
+  for (let i = 0; i < count; i++) {
+    const d = tempDates[i];
+    
     // Формат дати
     let datePart;
     switch (dateFmt) {
-      case 0: datePart = `${y}-${pad(m+1)}-${pad(dd)}`; break;
-      case 1: datePart = `${pad(dd)}.${pad(m+1)}.${y}`; break;
-      case 2: datePart = `${pad(dd)}/${pad(m+1)}/${y}`; break;
-      case 3: datePart = `${pad(m+1)}/${pad(dd)}/${y}`; break;
+      case 0: datePart = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; break;
+      case 1: datePart = `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()}`; break;
+      case 2: datePart = `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; break;
+      case 3: datePart = `${pad(d.getMonth()+1)}/${pad(d.getDate())}/${d.getFullYear()}`; break;
     }
 
     // Формат часу
     let timePart;
     if (timeFmt === 2) {
-      timePart = `${pad(h)}:${pad(min)}`;
+      timePart = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     } else {
       const sep = timeFmt === 0 ? ':' : '.';
-      timePart = `${pad(h)}${sep}${pad(min)}${sep}${pad(sec)}`;
+      timePart = `${pad(d.getHours())}${sep}${pad(d.getMinutes())}${sep}${pad(d.getSeconds())}`;
     }
 
-    const dateTimeStr = datePart + ' ' + timePart;
-
     generatedData.push({
-      number: globalIndex++,
-      dateTime: dateTimeStr,
-      fullDate: new Date(y, m, dd, h, min, sec)
+      number: i + 1,
+      uniqueId: hasUniqueIds ? parsedUniqueIds[i] : null,
+      dateTime: datePart + ' ' + timePart,
+      fullDate: d
     });
   }
 
-  // Сортування за часом
-  generatedData.sort((a, b) => a.fullDate - b.fullDate);
-
+  updateTableHeaders();
   showPreview();
   resultSection.classList.remove('hidden');
 });
@@ -336,6 +384,14 @@ function showError(msg) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function updateTableHeaders() {
+    if (hasUniqueIds) {
+        tableHeaderRow.innerHTML = `<th>№</th><th>Unique ID</th><th>DateTime</th>`;
+    } else {
+        tableHeaderRow.innerHTML = `<th>№</th><th>DateTime</th>`;
+    }
+}
+
 function showPreview() {
   previewBody.innerHTML = '';
 
@@ -344,15 +400,16 @@ function showPreview() {
 
   toShow.forEach(row => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${row.number}</td>
-      <td>${row.dateTime}</td>
-    `;
+    if (hasUniqueIds) {
+        tr.innerHTML = `<td>${row.number}</td><td>${row.uniqueId}</td><td>${row.dateTime}</td>`;
+    } else {
+        tr.innerHTML = `<td>${row.number}</td><td>${row.dateTime}</td>`;
+    }
     previewBody.appendChild(tr);
   });
 
   const uniqueDays = new Set(generatedData.map(r => r.dateTime.split(' ')[0])).size;
-  let txt = `Згенеровано <strong>${generatedData.length}</strong> записів за <strong>${uniqueDays}</strong> різних робочих днів (випадковий розподіл)`;
+  let txt = `Згенеровано <strong>${generatedData.length}</strong> записів за <strong>${uniqueDays}</strong> різних робочих днів`;
   if (generatedData.length > MAX_PREVIEW) {
     txt += ` (показано перші ${MAX_PREVIEW})`;
   }
@@ -362,10 +419,13 @@ function showPreview() {
 // Очистити
 document.getElementById('clearBtn').addEventListener('click', () => {
   form.reset();
-  document.getElementById('count').value = 100;
+  countInput.value = 100;
+  countInput.readOnly = false;
   errorBox.classList.add('hidden');
   resultSection.classList.add('hidden');
   generatedData = [];
+  parsedUniqueIds = [];
+  hasUniqueIds = false;
 });
 
 // CSV
@@ -376,9 +436,13 @@ document.getElementById('downloadCsv').addEventListener('click', () => {
   const end   = generatedData[generatedData.length-1].dateTime.split(' ')[0].replace(/\D/g,'').slice(0,8);
   const filename = `random-work-times-${start}-${end}.csv`;
 
-  let csv = 'Number,DateTime\n';
+  let csv = hasUniqueIds ? 'Number,Unique,DateTime\n' : 'Number,DateTime\n';
   generatedData.forEach(r => {
-    csv += `${r.number},"${r.dateTime.replace(/"/g, '""')}"\n`;
+    if (hasUniqueIds) {
+        csv += `${r.number},"${r.uniqueId}","${r.dateTime.replace(/"/g, '""')}"\n`;
+    } else {
+        csv += `${r.number},"${r.dateTime.replace(/"/g, '""')}"\n`;
+    }
   });
 
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -398,15 +462,25 @@ document.getElementById('downloadXlsx').addEventListener('click', () => {
   const end   = generatedData[generatedData.length-1].dateTime.split(' ')[0].replace(/\D/g,'').slice(0,8);
   const filename = `random-work-times-${start}-${end}.xlsx`;
 
-  const ws_data = [
-    ['Number', 'DateTime'],
-    ...generatedData.map(r => [r.number, r.dateTime])
-  ];
+  let ws_data = [];
+  if (hasUniqueIds) {
+      ws_data.push(['Number', 'Unique', 'DateTime']);
+      generatedData.forEach(r => ws_data.push([r.number, r.uniqueId, r.dateTime]));
+  } else {
+      ws_data.push(['Number', 'DateTime']);
+      generatedData.forEach(r => ws_data.push([r.number, r.dateTime]));
+  }
 
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Work Times');
-  ws['!cols'] = [{wch:8}, {wch:20}];
+  
+  // Налаштування ширини колонок
+  if (hasUniqueIds) {
+      ws['!cols'] = [{wch:8}, {wch:15}, {wch:20}];
+  } else {
+      ws['!cols'] = [{wch:8}, {wch:20}];
+  }
 
   XLSX.writeFile(wb, filename);
 });
