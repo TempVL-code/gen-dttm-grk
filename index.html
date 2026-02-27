@@ -169,6 +169,7 @@
 
     input[type="date"],
     input[type="number"],
+    input[type="time"],
     select,
     textarea {
       width: 100%;
@@ -384,6 +385,7 @@
             Якщо заповнене поле «Унікальні номери» – кількість визначається по їх кількості.
           </div>
         </div>
+
         <div>
           <label for="dateFmt">Формат дати</label>
           <select id="dateFmt">
@@ -393,6 +395,7 @@
             <option value="3">MM/DD/YYYY</option>
           </select>
         </div>
+
         <div>
           <label for="timeFmt">Формат часу</label>
           <select id="timeFmt">
@@ -400,6 +403,19 @@
             <option value="1">HH.MM.SS</option>
             <option value="2">HH:MM</option>
           </select>
+        </div>
+
+        <!-- Новий блок: діапазон робочих годин -->
+        <div>
+          <label>Робочі години (діапазон)</label>
+          <div style="display:flex; gap:0.4rem;">
+            <input type="time" id="workStart" value="09:00">
+            <span style="align-self:center;">–</span>
+            <input type="time" id="workEnd" value="19:00">
+          </div>
+          <div class="hint">
+            Зараз по замовчуванню: <span id="currentWorkRange">09:00–19:00</span>
+          </div>
         </div>
 
         <div class="full-width">
@@ -477,8 +493,19 @@ const uniqueInput = document.getElementById('uniqueInput');
 const countInput = document.getElementById('count');
 const countHint = document.getElementById('countHint');
 
+const workStartInput = document.getElementById('workStart');
+const workEndInput = document.getElementById('workEnd');
+const currentWorkRangeSpan = document.getElementById('currentWorkRange');
+
 function pad(n) {
   return n.toString().padStart(2, '0');
+}
+
+// Оновлення тексту поточного діапазону годин
+function updateCurrentWorkRangeText() {
+  const ws = workStartInput.value || '09:00';
+  const we = workEndInput.value || '19:00';
+  currentWorkRangeSpan.textContent = ws + '–' + we;
 }
 
 // Парсинг унікальних номерів: тільки 9–15 цифр
@@ -519,6 +546,10 @@ function updateCountLock() {
 
 uniqueInput.addEventListener('input', updateCountLock);
 
+// Зміна діапазону годин – оновлюємо підпис
+workStartInput.addEventListener('input', updateCurrentWorkRangeText);
+workEndInput.addEventListener('input', updateCurrentWorkRangeText);
+
 function showError(msg) {
   errorBox.textContent = msg;
   errorBox.classList.remove('hidden');
@@ -526,7 +557,7 @@ function showError(msg) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function showPreview() {
+function showPreview(workHoursText) {
   previewBody.innerHTML = '';
 
   const MAX_PREVIEW = 500;
@@ -543,7 +574,7 @@ function showPreview() {
   });
 
   const uniqueDays = new Set(generatedData.map(r => r.dateTime.split(' ')[0])).size;
-  let txt = `Згенеровано <strong>${generatedData.length}</strong> записів за <strong>${uniqueDays}</strong> різних робочих днів (Пн–Пт, випадковий розподіл)`;
+  let txt = `Згенеровано <strong>${generatedData.length}</strong> записів за <strong>${uniqueDays}</strong> різних робочих днів (Пн–Пт, випадковий розподіл, ${workHoursText})`;
   if (generatedData.length > MAX_PREVIEW) {
     txt += `, показано перші ${MAX_PREVIEW}`;
   }
@@ -562,6 +593,30 @@ form.addEventListener('submit', e => {
   const dateFmt  = parseInt(document.getElementById('dateFmt').value, 10);
   const timeFmt  = parseInt(document.getElementById('timeFmt').value, 10);
   const uniqueRaw = uniqueInput.value;
+
+  const workStartVal = workStartInput.value || '09:00';
+  const workEndVal   = workEndInput.value || '19:00';
+
+  // Валідація робочого діапазону годин
+  const [wsH, wsM] = workStartVal.split(':').map(Number);
+  const [weH, weM] = workEndVal.split(':').map(Number);
+
+  const startMinutes = wsH * 60 + wsM;
+  const endMinutes   = weH * 60 + weM;
+
+  if (isNaN(startMinutes) || isNaN(endMinutes)) {
+    showError('Невірний формат робочих годин.');
+    return;
+  }
+
+  if (endMinutes <= startMinutes) {
+    showError('Кінець робочого дня має бути пізніше початку.');
+    return;
+  }
+
+  const totalMinutesRange = endMinutes - startMinutes;
+  const workHoursFloat = totalMinutesRange / 60;
+  const workHoursText = workStartVal + '–' + workEndVal + ` (~${workHoursFloat.toFixed(2)} год)`; 
 
   if (!startStr || !endStr) {
     showError('Вкажіть обидві дати.');
@@ -625,15 +680,17 @@ form.addEventListener('submit', e => {
     const m  = dayDate.getMonth();
     const dd = dayDate.getDate();
 
-    const h   = 9 + Math.floor(Math.random() * 10);
-    const min = Math.floor(Math.random() * 60);
+    const randomMinutesOffset = Math.floor(Math.random() * totalMinutesRange);
+    const totalMinutesForDay = startMinutes + randomMinutesOffset;
+    const h   = Math.floor(totalMinutesForDay / 60);
+    const min = totalMinutesForDay % 60;
     const sec = Math.floor(Math.random() * 60);
 
     dates.push(new Date(y, m, dd, h, min, sec));
   }
 
   // 2) Сортуємо дати за часом
-  dates.sort((a, b) => a - b);  // [web:73]
+  dates.sort((a, b) => a - b); // [web:1][web:7]
 
   // 3) Формуємо generatedData: унікальні в своєму порядку, дати – відсортовані
   generatedData = [];
@@ -675,7 +732,7 @@ form.addEventListener('submit', e => {
     });
   }
 
-  showPreview();
+  showPreview(workHoursText);
   resultSection.classList.remove('hidden');
 });
 
@@ -689,6 +746,11 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   errorBox.classList.add('hidden');
   resultSection.classList.add('hidden');
   generatedData = [];
+
+  // Скидаємо і діапазон робочих годин до дефолту
+  workStartInput.value = '09:00';
+  workEndInput.value = '19:00';
+  updateCurrentWorkRangeText();
 });
 
 // CSV
@@ -738,6 +800,7 @@ document.getElementById('downloadXlsx').addEventListener('click', () => {
 
 // ініціальний стан
 updateCountLock();
+updateCurrentWorkRangeText();
 </script>
 
 </body>
