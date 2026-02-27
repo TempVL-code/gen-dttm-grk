@@ -656,7 +656,7 @@ form.addEventListener('submit', e => {
     });
   }
 
-  generatedData.sort((a, b) => a.fullDate - b.fullDate);
+  // ВАЖЛИВО: не сортуємо, щоб порядок залишився як у введених даних
 
   showPreview();
   resultSection.classList.remove('hidden');
