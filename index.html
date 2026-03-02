@@ -1,807 +1,1038 @@
 <!DOCTYPE html>
 <html lang="uk" data-theme="light">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ПоТужний Генератор Дат</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --bg: #f6f0ff;
-      --bg-soft: #f9f5ff;
-      --text: #2b2240;
-      --muted: #7c7199;
-      --card: #ffffff;
-      --border: #e0d4ff;
-      --accent: #7c3aed;
-      --accent-soft: #ede7ff;
-      --accent-strong: #5b21b6;
-      --error: #f97373;
-      --error-soft: #ffe5e5;
-      --success: #22c55e;
-      --shadow-soft: 0 10px 30px rgba(148, 119, 255, 0.18);
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ПоТужний Генератор Дат</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#f6f0ff; --bg-soft:#f9f5ff; --text:#2b2240; --muted:#7c7199;
+  --card:#ffffff; --border:#e0d4ff; --accent:#7c3aed; --accent-soft:#ede7ff;
+  --accent-strong:#5b21b6; --error:#f97373; --error-soft:#ffe5e5;
+  --success:#16a34a; --success-soft:#dcfce7; --warn:#d97706; --warn-soft:#fef3c7;
+  --shadow:0 10px 30px rgba(148,119,255,.18);
+}
+[data-theme="dark"] {
+  --bg:#100b1f; --bg-soft:#181024; --text:#f4f1ff; --muted:#b3a7d6;
+  --card:#1f1633; --border:#3b2c59; --accent:#a855f7; --accent-soft:#2b1a47;
+  --accent-strong:#c4b5fd; --error:#fb7185; --error-soft:#3b1020;
+  --success:#22c55e; --success-soft:#052e16; --warn:#fbbf24; --warn-soft:#1c1200;
+  --shadow:0 14px 40px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:radial-gradient(circle at top left,#fce7ff 0,var(--bg) 40%);
+  color:var(--text);padding:30px 20px 60px;min-height:100vh;line-height:1.5;}
+.container{max-width:1100px;margin:0 auto;}
 
-    [data-theme="dark"] {
-      --bg: #100b1f;
-      --bg-soft: #181024;
-      --text: #f4f1ff;
-      --muted: #b3a7d6;
-      --card: #1f1633;
-      --border: #3b2c59;
-      --accent: #a855f7;
-      --accent-soft: #2b1a47;
-      --accent-strong: #c4b5fd;
-      --error: #fb7185;
-      --error-soft: #3b1020;
-      --success: #22c55e;
-      --shadow-soft: 0 14px 40px rgba(0, 0, 0, 0.55);
-    }
+/* HEADER */
+header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+.title-block{display:flex;flex-direction:column;gap:.25rem;}
+.badge{display:inline-flex;align-items:center;gap:.4rem;padding:.15rem .6rem;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent-strong);font-size:.78rem;font-weight:600;
+  border:1px solid rgba(124,58,237,.18);width:fit-content;}
+h1{font-size:2.1rem;letter-spacing:.03em;}
+.subtitle{font-size:.9rem;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;}
+.header-right{display:flex;gap:.5rem;align-items:center;}
+.theme-btn{background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-size:1.2rem;width:40px;height:40px;border-radius:999px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);}
 
-    * {
-      box-sizing: border-box;
-    }
+/* CARD */
+.card{background:var(--card);border-radius:18px;border:1px solid var(--border);
+  box-shadow:var(--shadow);padding:1.5rem 1.6rem 1.8rem;margin-bottom:1.2rem;}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;flex-wrap:wrap;gap:.5rem;}
+.card-title{font-weight:600;display:flex;align-items:center;gap:.5rem;font-size:1rem;}
+.pill{padding:.15rem .55rem;border-radius:999px;font-size:.8rem;
+  background:var(--accent-soft);color:var(--accent-strong);}
 
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: radial-gradient(circle at top left, #fce7ff 0, var(--bg) 40%);
-      color: var(--text);
-      margin: 0;
-      padding: 30px 20px 40px;
-      min-height: 100vh;
-      line-height: 1.5;
-    }
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1.1fr 1.1fr 1.2fr;gap:1.1rem;margin-bottom:1.2rem;}
+@media(max-width:900px){.form-grid{grid-template-columns:1fr;}}
+.full-width{grid-column:1/-1;}
+label{display:block;margin-bottom:.35rem;font-weight:500;font-size:.9rem;}
+.hint{font-size:.78rem;color:var(--muted);margin-top:.25rem;}
 
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-    }
+input[type=date],input[type=number],input[type=time],select,textarea{
+  width:100%;padding:.65rem .9rem;background:var(--bg-soft);border:1px solid var(--border);
+  color:var(--text);border-radius:10px;font-size:.95rem;transition:border-color .15s,box-shadow .15s;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
+input.invalid{border-color:var(--error)!important;box-shadow:0 0 0 3px rgba(249,115,115,.12)!important;}
+input.valid{border-color:var(--success)!important;}
+input[disabled]{background:#e9e1ff;color:var(--muted);cursor:not-allowed;}
+textarea{resize:vertical;min-height:130px;font-family:"JetBrains Mono",ui-monospace,monospace;}
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
+/* DROPZONE */
+.dropzone{border:2px dashed var(--border);border-radius:12px;padding:1rem 1.2rem;
+  text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-top:.5rem;}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:var(--accent-soft);}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dropzone-icon{font-size:1.6rem;display:block;margin-bottom:.3rem;}
+.dropzone-text{font-size:.85rem;color:var(--muted);}
+.dropzone-text strong{color:var(--accent-strong);}
+#dropFileName{margin-top:.4rem;font-size:.82rem;color:var(--success);font-weight:600;min-height:1rem;}
 
-    .title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
+/* COLUMN PICKER MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--card);border-radius:16px;border:1px solid var(--border);
+  padding:1.5rem 1.6rem;max-width:460px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,.35);
+  transform:translateY(8px);transition:transform .2s;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal h3{font-size:1.05rem;margin-bottom:.8rem;}
+.modal-desc{font-size:.88rem;color:var(--muted);margin-bottom:1rem;line-height:1.5;}
+.col-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.2rem;max-height:220px;overflow-y:auto;}
+.col-item{display:flex;align-items:center;gap:.75rem;padding:.6rem .9rem;border-radius:10px;
+  border:1.5px solid var(--border);cursor:pointer;transition:all .15s;font-size:.9rem;}
+.col-item:hover{border-color:var(--accent);background:var(--accent-soft);}
+.col-item.selected{border-color:var(--accent);background:var(--accent-soft);font-weight:600;}
+.col-idx{font-size:.78rem;color:var(--muted);min-width:2rem;}
+.col-sample{font-size:.78rem;color:var(--muted);margin-left:auto;font-family:monospace;}
 
-    h1 {
-      margin: 0;
-      font-size: 2.1rem;
-      letter-spacing: 0.03em;
-    }
+/* TEXTAREA COUNTER */
+.textarea-wrap{position:relative;}
+.textarea-counter{position:absolute;bottom:.5rem;right:.8rem;font-size:.75rem;
+  color:var(--muted);pointer-events:none;background:var(--card);padding:1px 5px;
+  border-radius:6px;border:1px solid var(--border);}
+.textarea-counter.has-valid{color:var(--success);font-weight:600;}
+.textarea-counter.has-invalid{color:var(--warn);}
 
-    .subtitle {
-      font-size: 0.95rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
+/* BUTTONS */
+.btn{padding:.7rem 1.4rem;font-size:.92rem;border:none;border-radius:999px;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent-strong));color:#fff;
+  font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  box-shadow:0 8px 20px rgba(124,58,237,.4);transition:transform .12s,box-shadow .12s,opacity .12s;
+  white-space:nowrap;display:inline-flex;align-items:center;gap:.4rem;}
+.btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(124,58,237,.55);opacity:.96;}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
+.btn-sec{background:var(--bg-soft);color:var(--muted);border:1px solid var(--border);
+  box-shadow:none;text-transform:none;letter-spacing:0;}
+.btn-sec:hover{transform:none;box-shadow:none;background:var(--accent-soft);color:var(--accent-strong);}
+.btn-sm{padding:.4rem 1rem;font-size:.82rem;}
+.btn-ghost{background:transparent;border:1.5px solid var(--accent);color:var(--accent-strong);
+  box-shadow:none;text-transform:none;letter-spacing:0;}
+.btn-ghost:hover{background:var(--accent-soft);transform:none;box-shadow:none;}
+.actions{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1rem;align-items:center;}
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.15rem 0.6rem;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent-strong);
-      font-size: 0.78rem;
-      font-weight: 600;
-      border: 1px solid rgba(124, 58, 237, 0.18);
-    }
+/* ALERTS */
+.alert{padding:.8rem 1rem;border-radius:12px;margin:.8rem 0;font-size:.9rem;
+  display:flex;align-items:flex-start;gap:.6rem;line-height:1.5;}
+.alert-error{color:var(--error);background:var(--error-soft);border:1px solid rgba(249,115,115,.5);}
+.alert-warn{color:var(--warn);background:var(--warn-soft);border:1px solid rgba(217,119,6,.35);}
+.alert-success{color:var(--success);background:var(--success-soft);border:1px solid rgba(22,163,74,.3);}
+.hidden{display:none!important;}
 
-    .theme-toggle {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-size: 1.2rem;
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: var(--shadow-soft);
-    }
+/* PROGRESS */
+.progress-wrap{margin:.8rem 0;}
+.progress-bar-bg{height:6px;background:var(--border);border-radius:999px;overflow:hidden;}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-strong));
+  border-radius:999px;width:0%;transition:width .1s linear;}
+.progress-label{font-size:.8rem;color:var(--muted);margin-top:.3rem;text-align:center;}
 
-    .main-card {
-      background: var(--card);
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-soft);
-      padding: 1.5rem 1.6rem 1.8rem;
-    }
+/* STATS */
+.stats-row{display:flex;gap:.7rem;flex-wrap:wrap;margin:.8rem 0;}
+.stat-chip{padding:.3rem .75rem;border-radius:999px;font-size:.82rem;font-weight:600;
+  border:1px solid var(--border);background:var(--bg-soft);}
+.stat-chip span{color:var(--muted);font-weight:400;margin-right:.2rem;}
 
-    .main-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.2rem;
-    }
+/* RESULT */
+.result-bar{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;
+  justify-content:space-between;margin:1rem 0 .8rem;font-size:.9rem;}
+.result-main{font-weight:500;}
+.chip{padding:.25rem .7rem;border-radius:999px;background:var(--bg-soft);
+  border:1px dashed var(--border);font-size:.78rem;color:var(--muted);}
 
-    .main-card-title {
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
+.scroll-box{max-height:420px;overflow:auto;border-radius:14px;border:1px solid var(--border);}
+.scroll-box::-webkit-scrollbar{width:5px;height:5px;}
+.scroll-box::-webkit-scrollbar-track{background:var(--bg-soft);}
+.scroll-box::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
-    .pill {
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.8rem;
-      background: var(--accent-soft);
-      color: var(--accent-strong);
-    }
+table{width:100%;border-collapse:collapse;background:var(--card);font-size:.9rem;}
+th,td{padding:.6rem .9rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+th{background:var(--accent-soft);color:var(--accent-strong);font-weight:600;
+  font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;}
+tbody tr:nth-child(even){background:var(--bg-soft);}
+tbody tr:hover{background:var(--accent-soft);}
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 1.1fr 1.2fr;
-      gap: 1.1rem;
-      margin-bottom: 1.4rem;
-    }
+/* INLINE VALIDATION */
+.field-error{font-size:.78rem;color:var(--error);margin-top:.25rem;}
 
-    @media (max-width: 900px) {
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.35rem;
-      font-weight: 500;
-      font-size: 0.9rem;
-    }
-
-    .hint {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 0.1rem;
-    }
-
-    input[type="date"],
-    input[type="number"],
-    input[type="time"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 0.65rem 0.9rem;
-      background: var(--bg-soft);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 10px;
-      font-size: 0.95rem;
-    }
-
-    input[disabled] {
-      background: #e9e1ff;
-      color: var(--muted);
-      cursor: not-allowed;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 130px;
-      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
-
-    .full-width {
-      grid-column: 1 / -1;
-    }
-
-    .btn {
-      padding: 0.7rem 1.5rem;
-      font-size: 0.95rem;
-      border: none;
-      border-radius: 999px;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: white;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.45);
-      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
-      white-space: nowrap;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 14px 32px rgba(124, 58, 237, 0.6);
-      opacity: 0.96;
-    }
-
-    .btn-secondary {
-      background: var(--bg-soft);
-      color: var(--muted);
-      border: 1px solid var(--border);
-      box-shadow: none;
-      text-transform: none;
-      letter-spacing: 0;
-    }
-
-    .btn-secondary:hover {
-      transform: none;
-      box-shadow: none;
-      background: #efe7ff;
-    }
-
-    .actions {
-      display: flex;
-      gap: 0.8rem;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-    }
-
-    .error {
-      color: var(--error);
-      background: var(--error-soft);
-      padding: 0.8rem 1rem;
-      border-radius: 12px;
-      margin: 1rem 0;
-      border: 1px solid rgba(248,113,113,0.6);
-      font-size: 0.9rem;
-    }
-
-    .result-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.8rem;
-      align-items: center;
-      justify-content: space-between;
-      margin: 1.2rem 0 0.8rem;
-      font-size: 0.9rem;
-    }
-
-    .result-main {
-      font-weight: 500;
-    }
-
-    .result-extra {
-      color: var(--muted);
-      font-size: 0.82rem;
-    }
-
-    .result-extra strong {
-      font-weight: 600;
-    }
-
-    .chip {
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
-      background: var(--bg-soft);
-      border: 1px dashed var(--border);
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--card);
-      border-radius: 14px;
-      overflow: hidden;
-      font-size: 0.9rem;
-    }
-
-    th, td {
-      padding: 0.6rem 0.9rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    th {
-      background: var(--accent-soft);
-      color: var(--accent-strong);
-      font-weight: 600;
-      font-size: 0.84rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    tbody tr:nth-child(even) {
-      background: var(--bg-soft);
-    }
-
-    .scroll-box {
-      max-height: 420px;
-      overflow: auto;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .header-tabs {
-      display: flex;
-      gap: 0.5rem;
-      font-size: 0.85rem;
-    }
-
-    .header-tabs span {
-      padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      color: var(--muted);
-    }
-
-    .header-tabs span.active {
-      background: var(--accent-soft);
-      border-color: rgba(124, 58, 237, 0.4);
-      color: var(--accent-strong);
-      font-weight: 600;
-    }
-  </style>
+/* COPY BTN */
+.copy-btn{font-size:.75rem;padding:.2rem .6rem;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg-soft);color:var(--muted);cursor:pointer;transition:all .15s;}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent-strong);}
+.copy-btn.copied{border-color:var(--success);color:var(--success);}
+</style>
 </head>
 <body>
-
 <div class="container">
-  <header>
-    <div class="title-block">
-      <span class="badge">⚙️ ПоТужний Генератор Дат</span>
-      <h1>ПоТужний Генератор ДатГодин</h1>
-      <div class="subtitle">Аналіз · Генерація · Excel</div>
-    </div>
-    <button class="theme-toggle" id="themeBtn" title="Змінити тему">🌙</button>
-  </header>
 
-  <div class="main-card">
-    <div class="main-card-header">
-      <div class="main-card-title">
-        <span>Дані для генерації</span>
-        <span class="pill">XLSX / CSV підтримуються</span>
-      </div>
-      <div class="header-tabs">
-        <span class="active">Генерація</span>
-        <span>Експорт</span>
-      </div>
-    </div>
+<!-- HEADER -->
+<header>
+  <div class="title-block">
+    <span class="badge">⚙️ v2.0</span>
+    <h1>ПоТужний Генератор ДатГодин</h1>
+    <div class="subtitle">Аналіз · Генерація · Excel · Drag&amp;Drop</div>
+  </div>
+  <div class="header-right">
+    <button class="theme-btn" id="themeBtn" title="Змінити тему">🌙</button>
+  </div>
+</header>
 
-    <form id="genForm">
-      <div class="form-grid">
-        <div>
-          <label for="start">Дата початку</label>
-          <input type="date" id="start" required>
-        </div>
-        <div>
-          <label for="end">Дата закінчення</label>
-          <input type="date" id="end" required>
-        </div>
-        <div>
-          <label for="count">Кількість записів</label>
-          <input type="number" id="count" min="1" max="10000" value="100" required>
-          <div class="hint" id="countHint">
-            Якщо заповнене поле «Унікальні номери» – кількість визначається по їх кількості.
-          </div>
-        </div>
-
-        <div>
-          <label for="dateFmt">Формат дати</label>
-          <select id="dateFmt">
-            <option value="0">YYYY-MM-DD</option>
-            <option value="1" selected>DD.MM.YYYY</option>
-            <option value="2">DD/MM/YYYY</option>
-            <option value="3">MM/DD/YYYY</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="timeFmt">Формат часу</label>
-          <select id="timeFmt">
-            <option value="0" selected>HH:MM:SS</option>
-            <option value="1">HH.MM.SS</option>
-            <option value="2">HH:MM</option>
-          </select>
-        </div>
-
-        <!-- Новий блок: діапазон робочих годин -->
-        <div>
-          <label>Робочі години (діапазон)</label>
-          <div style="display:flex; gap:0.4rem;">
-            <input type="time" id="workStart" value="09:00">
-            <span style="align-self:center;">–</span>
-            <input type="time" id="workEnd" value="19:00">
-          </div>
-          <div class="hint">
-            Зараз по замовчуванню: <span id="currentWorkRange">09:00–19:00</span>
-          </div>
-        </div>
-
-        <div class="full-width">
-          <label for="uniqueInput">Унікальні номери (опціонально)</label>
-          <textarea id="uniqueInput" placeholder="Вставте номери з буфера. Кожен номер — окремий рядок. Будуть прийняті лише значення з 9–15 цифр."></textarea>
-          <div class="hint">Напр.: 420778508935 · 420778516894 · 420778546006 · …</div>
-        </div>
-
-        <div class="full-width actions" style="margin-top:0.3rem;">
-          <button type="submit" class="btn">🔮 Згенерувати</button>
-          <button type="button" id="clearBtn" class="btn btn-secondary">Очистити форму</button>
-        </div>
-      </div>
-    </form>
-
-    <div id="errorBox" class="error hidden"></div>
-
-    <div id="resultSection" class="hidden">
-      <div class="result-bar">
-        <div class="result-main" id="resultInfo"></div>
-        <div class="result-extra" id="uniqueInfo"></div>
-      </div>
-
-      <div class="scroll-box">
-        <table>
-          <thead>
-            <tr>
-              <th>№</th>
-              <th>Unique</th>
-              <th>DateTime</th>
-            </tr>
-          </thead>
-          <tbody id="previewBody"></tbody>
-        </table>
-      </div>
-
-      <div class="actions" style="margin-top:1.2rem;">
-        <button id="downloadCsv" class="btn">⬇︎ CSV</button>
-        <button id="downloadXlsx" class="btn">⬇︎ XLSX</button>
-        <span class="chip">Показується максимум 500 рядків превʼю</span>
-      </div>
+<!-- COLUMN PICKER MODAL -->
+<div class="modal-overlay" id="colModal">
+  <div class="modal">
+    <h3>📋 Виявлено кілька колонок</h3>
+    <p class="modal-desc">Дані містять <strong id="colCount">N</strong> колонок.
+      Оберіть яку колонку використати як телефонні номери:</p>
+    <div class="col-list" id="colList"></div>
+    <div style="display:flex;gap:.7rem;justify-content:flex-end;">
+      <button class="btn btn-sec btn-sm" id="colCancel">Скасувати</button>
+      <button class="btn btn-sm" id="colConfirm">✓ Обрати</button>
     </div>
   </div>
 </div>
 
-<script>
-// Тема
-const themeBtn = document.getElementById('themeBtn');
-const html = document.documentElement;
+<!-- MAIN FORM -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">
+      📅 Параметри генерації
+      <span class="pill">XLSX / CSV / TXT</span>
+    </div>
+  </div>
 
-function setTheme(theme) {
-  html.dataset.theme = theme;
-  themeBtn.textContent = theme === 'dark' ? '☀️' : '🌙';
-  localStorage.setItem('ptg-theme', theme);
+  <form id="genForm">
+    <div class="form-grid">
+
+      <!-- Дати -->
+      <div>
+        <label for="start">Дата початку</label>
+        <input type="date" id="start" required>
+        <div class="field-error hidden" id="startErr"></div>
+      </div>
+      <div>
+        <label for="end">Дата закінчення</label>
+        <input type="date" id="end" required>
+        <div class="field-error hidden" id="endErr"></div>
+      </div>
+
+      <!-- Кількість -->
+      <div>
+        <label for="count">Кількість записів</label>
+        <input type="number" id="count" min="1" max="100000" value="100" required>
+        <div class="hint" id="countHint">Якщо заповнені «Унікальні номери» — кількість визначається автоматично.</div>
+        <div class="field-error hidden" id="countErr"></div>
+      </div>
+
+      <!-- Формати -->
+      <div>
+        <label for="dateFmt">Формат дати</label>
+        <select id="dateFmt">
+          <option value="0">YYYY-MM-DD</option>
+          <option value="1" selected>DD.MM.YYYY</option>
+          <option value="2">DD/MM/YYYY</option>
+          <option value="3">MM/DD/YYYY</option>
+        </select>
+      </div>
+      <div>
+        <label for="timeFmt">Формат часу</label>
+        <select id="timeFmt">
+          <option value="0" selected>HH:MM:SS</option>
+          <option value="1">HH.MM.SS</option>
+          <option value="2">HH:MM</option>
+        </select>
+      </div>
+
+      <!-- Робочі години -->
+      <div>
+        <label>Робочі години</label>
+        <div style="display:flex;gap:.4rem;align-items:center;">
+          <input type="time" id="workStart" value="09:00" style="flex:1;">
+          <span style="color:var(--muted);">–</span>
+          <input type="time" id="workEnd" value="19:00" style="flex:1;">
+        </div>
+        <div class="hint">Діапазон: <span id="workRangeText">09:00–19:00</span></div>
+        <div class="field-error hidden" id="workErr"></div>
+      </div>
+
+      <!-- Textarea + drag&drop -->
+      <div class="full-width">
+        <label>Унікальні номери <span style="color:var(--muted);font-weight:400;">(опціонально)</span></label>
+
+        <div class="textarea-wrap">
+          <textarea id="uniqueInput"
+            placeholder="Вставте номери з буфера (один рядок = один номер).&#10;Або перетягніть файл .txt / .csv / .xlsx нижче.&#10;&#10;Якщо вставляєте з Excel з кількома колонками — запитаємо яку взяти.&#10;Приймаються значення з 9–15 цифр."></textarea>
+          <span class="textarea-counter" id="taCounter">0 номерів</span>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".txt,.csv,.xlsx,.xls">
+          <span class="dropzone-icon">📂</span>
+          <div class="dropzone-text">
+            <strong>Перетягніть файл</strong> або натисніть для вибору<br>
+            <span style="font-size:.78rem;">.txt &nbsp;·&nbsp; .csv &nbsp;·&nbsp; .xlsx &nbsp;·&nbsp; .xls</span>
+          </div>
+          <div id="dropFileName"></div>
+        </div>
+        <div class="hint" style="margin-top:.4rem;" id="uniqueHint">
+          Напр.: 420778508935 · 420778516894 · 420778546006 …
+        </div>
+      </div>
+
+      <!-- Дії -->
+      <div class="full-width actions" style="margin-top:.2rem;">
+        <button type="submit" class="btn" id="genBtn">🔮 Згенерувати</button>
+        <button type="button" id="clearBtn" class="btn btn-sec">✕ Очистити форму</button>
+      </div>
+    </div>
+  </form>
+
+  <div id="errorBox" class="alert alert-error hidden"></div>
+  <div id="warnBox"  class="alert alert-warn  hidden"></div>
+
+  <!-- PROGRESS -->
+  <div id="progressWrap" class="progress-wrap hidden">
+    <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-label" id="progressLabel">Генерація...</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="resultSection" class="hidden">
+    <div class="stats-row" id="statsRow"></div>
+    <div class="result-bar">
+      <div class="result-main" id="resultInfo"></div>
+      <div>
+        <button class="copy-btn" id="copyDatesBtn" title="Копіювати всі DateTime">📋 Копіювати DateTime</button>
+      </div>
+    </div>
+
+    <div class="scroll-box">
+      <table>
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Унікальний</th>
+            <th>DateTime</th>
+          </tr>
+        </thead>
+        <tbody id="previewBody"></tbody>
+      </table>
+    </div>
+
+    <div class="actions" style="margin-top:1.2rem;">
+      <button id="downloadCsv"  class="btn">⬇ CSV</button>
+      <button id="downloadXlsx" class="btn">⬇ XLSX</button>
+      <span class="chip">Показується макс. 500 рядків у превью</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════
+const html = document.documentElement;
+const themeBtn = document.getElementById('themeBtn');
+
+function setTheme(t){
+  html.dataset.theme = t;
+  themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('ptg-theme', t);
+}
+setTheme(localStorage.getItem('ptg-theme') || 'light');
+themeBtn.addEventListener('click', () => setTheme(html.dataset.theme === 'dark' ? 'light' : 'dark'));
+
+// ═══════════════════════════════════════════════════════
+// PERSIST FORM STATE (FR-14)
+// ═══════════════════════════════════════════════════════
+const PERSIST_KEYS = ['start','end','count','dateFmt','timeFmt','workStart','workEnd'];
+
+function saveState(){
+  const state = {};
+  PERSIST_KEYS.forEach(k => {
+    const el = document.getElementById(k);
+    if(el) state[k] = el.value;
+  });
+  localStorage.setItem('ptg-form', JSON.stringify(state));
 }
 
-let savedTheme = localStorage.getItem('ptg-theme') || 'light';
-setTheme(savedTheme);
+function loadState(){
+  try {
+    const state = JSON.parse(localStorage.getItem('ptg-form') || '{}');
+    PERSIST_KEYS.forEach(k => {
+      const el = document.getElementById(k);
+      if(el && state[k] !== undefined) el.value = state[k];
+    });
+  } catch(e){}
+}
 
-themeBtn.addEventListener('click', () => {
-  const current = html.dataset.theme;
-  setTheme(current === 'dark' ? 'light' : 'dark');
+PERSIST_KEYS.forEach(k => {
+  const el = document.getElementById(k);
+  if(el) el.addEventListener('change', saveState);
 });
 
-// Основна логіка
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
 let generatedData = [];
+let pendingPasteData = null; // {columns: [], rows: []}
 
-const form = document.getElementById('genForm');
-const errorBox = document.getElementById('errorBox');
-const resultSection = document.getElementById('resultSection');
-const resultInfo = document.getElementById('resultInfo');
-const uniqueInfo = document.getElementById('uniqueInfo');
-const previewBody = document.getElementById('previewBody');
-const uniqueInput = document.getElementById('uniqueInput');
-const countInput = document.getElementById('count');
-const countHint = document.getElementById('countHint');
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+const pad = n => n.toString().padStart(2,'0');
 
-const workStartInput = document.getElementById('workStart');
-const workEndInput = document.getElementById('workEnd');
-const currentWorkRangeSpan = document.getElementById('currentWorkRange');
+function show(id){ document.getElementById(id).classList.remove('hidden'); }
+function hide(id){ document.getElementById(id).classList.add('hidden'); }
+function setText(id, html){ document.getElementById(id).innerHTML = html; }
 
-function pad(n) {
-  return n.toString().padStart(2, '0');
+function setAlert(type, msg){
+  const id = type === 'error' ? 'errorBox' : 'warnBox';
+  const other = type === 'error' ? 'warnBox' : 'errorBox';
+  hide(other);
+  if(!msg){ hide(id); return; }
+  document.getElementById(id).innerHTML = (type==='error'?'❌ ':'⚠️ ') + msg;
+  show(id);
 }
 
-// Оновлення тексту поточного діапазону годин
-function updateCurrentWorkRangeText() {
-  const ws = workStartInput.value || '09:00';
-  const we = workEndInput.value || '19:00';
-  currentWorkRangeSpan.textContent = ws + '–' + we;
+// Inline field validation
+function fieldOk(inputEl, errId){
+  inputEl.classList.remove('invalid');
+  inputEl.classList.add('valid');
+  hide(errId);
+}
+function fieldErr(inputEl, errId, msg){
+  inputEl.classList.remove('valid');
+  inputEl.classList.add('invalid');
+  document.getElementById(errId).textContent = msg;
+  show(errId);
+}
+function fieldReset(inputEl, errId){
+  inputEl.classList.remove('valid','invalid');
+  hide(errId);
 }
 
-// Парсинг унікальних номерів: тільки 9–15 цифр
-function parseUniqueNumbers(raw) {
-  if (!raw) return { valid: [], invalid: 0 };
+// ═══════════════════════════════════════════════════════
+// PARSE NUMBERS (FR-7: deduplicate)
+// ═══════════════════════════════════════════════════════
+function parseUniqueNumbers(raw){
+  if(!raw || !raw.trim()) return { valid:[], invalid:0, duplicates:0 };
+
   const lines = raw.split(/\r?\n/);
-  const result = [];
-  let invalid = 0;
+  const seen = new Set();
+  const valid = [];
+  let invalid = 0, duplicates = 0;
 
-  for (let line of lines) {
+  for(let line of lines){
+    // Handle tab-separated (paste from Excel) — column selection handled separately
     const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    const digits = trimmed.replace(/\D/g, '');
-    if (/^[0-9]{9,15}$/.test(digits)) {
-      result.push(digits);
+    if(!trimmed) continue;
+    const digits = trimmed.replace(/\D/g,'');
+    if(/^[0-9]{9,15}$/.test(digits)){
+      if(seen.has(digits)){
+        duplicates++;
+      } else {
+        seen.add(digits);
+        valid.push(digits);
+      }
     } else {
       invalid++;
     }
   }
-
-  return { valid: result, invalid };
+  return { valid, invalid, duplicates };
 }
 
-// Авто-лок/анлок поля count при зміні textarea
-function updateCountLock() {
-  const { valid } = parseUniqueNumbers(uniqueInput.value);
+// ═══════════════════════════════════════════════════════
+// TEXTAREA COUNTER (FR-11)
+// ═══════════════════════════════════════════════════════
+const uniqueInput = document.getElementById('uniqueInput');
+const taCounter   = document.getElementById('taCounter');
+const countInput  = document.getElementById('count');
+const countHint   = document.getElementById('countHint');
 
-  if (valid.length > 0) {
-    countInput.value = valid.length;
+function updateCounter(){
+  const { valid, invalid, duplicates } = parseUniqueNumbers(uniqueInput.value);
+  let text = '';
+  let cls  = '';
+
+  if(!uniqueInput.value.trim()){
+    text = '0 номерів';
+  } else if(valid.length > 0){
+    text = `✓ ${valid.length} номерів`;
+    cls  = 'has-valid';
+    if(duplicates) text += ` (−${duplicates} дублів)`;
+    if(invalid)    text += ` · ${invalid} помилок`;
+    if(cls === 'has-valid' && invalid) cls = 'has-invalid';
+  } else {
+    text = `⚠ ${invalid} невалідних`;
+    cls  = 'has-invalid';
+  }
+
+  taCounter.textContent = text;
+  taCounter.className = 'textarea-counter' + (cls ? ' '+cls : '');
+  updateCountLock(valid.length, duplicates, invalid);
+}
+
+function updateCountLock(validCount, dups, inv){
+  if(validCount > 0){
+    countInput.value = validCount;
     countInput.disabled = true;
-    countHint.textContent = `Поле заблоковано: кількість визначена по валідних унікальних номерах (${valid.length}).`;
+    let hint = `Заблоковано: ${validCount} валідних номерів`;
+    if(dups)  hint += ` · ${dups} дублів видалено`;
+    if(inv)   hint += ` · ${inv} невалідних пропущено`;
+    countHint.textContent = hint;
   } else {
     countInput.disabled = false;
-    countHint.textContent = 'Якщо заповнене поле «Унікальні номери» – кількість визначається по їх кількості.';
+    countHint.textContent = 'Якщо заповнені «Унікальні номери» — кількість визначається автоматично.';
   }
 }
 
-uniqueInput.addEventListener('input', updateCountLock);
+uniqueInput.addEventListener('input', () => {
+  updateCounter();
+  saveState(); // also persist textarea? skip — too large
+});
 
-// Зміна діапазону годин – оновлюємо підпис
-workStartInput.addEventListener('input', updateCurrentWorkRangeText);
-workEndInput.addEventListener('input', updateCurrentWorkRangeText);
+// ═══════════════════════════════════════════════════════
+// PASTE FROM EXCEL: detect multi-column (FR-5)
+// ═══════════════════════════════════════════════════════
+uniqueInput.addEventListener('paste', e => {
+  const text = (e.clipboardData || window.clipboardData).getData('text');
+  if(!text) return;
 
-function showError(msg) {
-  errorBox.textContent = msg;
-  errorBox.classList.remove('hidden');
-  resultSection.classList.add('hidden');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Detect tab-separator
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  const hasTab = lines.some(l => l.includes('\t'));
+  if(!hasTab) return; // single column — normal paste
+
+  e.preventDefault();
+
+  const rows = lines.map(l => l.split('\t').map(c => c.trim()));
+  const maxCols = Math.max(...rows.map(r => r.length));
+
+  if(maxCols < 2){
+    // only one col effectively
+    uniqueInput.value = rows.map(r => r[0]).join('\n');
+    updateCounter();
+    return;
+  }
+
+  // Build column samples for modal
+  const columns = [];
+  for(let ci = 0; ci < maxCols; ci++){
+    const samples = rows.slice(0,5).map(r => r[ci] || '').filter(Boolean);
+    columns.push({ index: ci, samples });
+  }
+
+  pendingPasteData = { columns, rows, text };
+  openColModal(columns, rows);
+});
+
+// ═══════════════════════════════════════════════════════
+// COLUMN PICKER MODAL
+// ═══════════════════════════════════════════════════════
+let selectedColIdx = 0;
+
+function openColModal(columns, rows){
+  selectedColIdx = 0;
+  document.getElementById('colCount').textContent = columns.length;
+
+  const list = document.getElementById('colList');
+  list.innerHTML = '';
+
+  columns.forEach((col, i) => {
+    const item = document.createElement('div');
+    item.className = 'col-item' + (i === 0 ? ' selected' : '');
+    item.dataset.idx = i;
+
+    // Check how many look like phone numbers
+    const phoneCount = col.samples.filter(s => /^[0-9]{9,15}$/.test(s.replace(/\D/g,''))).length;
+    const phoneHint  = phoneCount > 0 ? ` 📞 ${phoneCount}/${col.samples.length} схожі на номери` : '';
+
+    item.innerHTML = `
+      <span class="col-idx">Кол. ${i+1}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.88rem;">${phoneHint}</div>
+        <div class="col-sample">${col.samples.slice(0,3).join(' · ')}</div>
+      </div>`;
+
+    item.addEventListener('click', () => {
+      list.querySelectorAll('.col-item').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      selectedColIdx = i;
+    });
+
+    // Auto-select best column (most phone-like)
+    if(i === 0 || phoneCount > (columns[selectedColIdx]?.phoneCount || 0)){
+      col.phoneCount = phoneCount;
+      if(phoneCount > 0){
+        selectedColIdx = i;
+      }
+    }
+    col.phoneCount = phoneCount;
+
+    list.appendChild(item);
+  });
+
+  // Highlight best
+  list.querySelectorAll('.col-item').forEach(el => el.classList.remove('selected'));
+  list.children[selectedColIdx]?.classList.add('selected');
+
+  document.getElementById('colModal').classList.add('open');
 }
 
-function showPreview(workHoursText) {
-  previewBody.innerHTML = '';
+document.getElementById('colCancel').addEventListener('click', () => {
+  document.getElementById('colModal').classList.remove('open');
+  pendingPasteData = null;
+});
 
-  const MAX_PREVIEW = 500;
-  const toShow = generatedData.slice(0, MAX_PREVIEW);
+document.getElementById('colConfirm').addEventListener('click', () => {
+  if(!pendingPasteData) return;
+  const { rows } = pendingPasteData;
+  const extracted = rows.map(r => r[selectedColIdx] || '').filter(Boolean);
+  uniqueInput.value = extracted.join('\n');
+  updateCounter();
+  document.getElementById('colModal').classList.remove('open');
+  pendingPasteData = null;
+});
 
+document.getElementById('colList').addEventListener('click', e => {
+  const item = e.target.closest('.col-item');
+  if(!item) return;
+  selectedColIdx = parseInt(item.dataset.idx);
+  document.querySelectorAll('.col-item').forEach(el => el.classList.remove('selected'));
+  item.classList.add('selected');
+});
+
+// ═══════════════════════════════════════════════════════
+// DRAG & DROP / FILE INPUT (FR-6)
+// ═══════════════════════════════════════════════════════
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const dropFileName = document.getElementById('dropFileName');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if(file) handleFile(file);
+});
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(file) handleFile(file);
+});
+
+function handleFile(file){
+  const ext = file.name.split('.').pop().toLowerCase();
+  dropFileName.textContent = '';
+
+  if(ext === 'xlsx' || ext === 'xls'){
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try{
+        const wb = XLSX.read(ev.target.result, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+        const rows = data.filter(r => r.some(c => String(c).trim()));
+        if(!rows.length){ setAlert('error','Файл порожній або не вдалося зчитати.'); return; }
+
+        const maxCols = Math.max(...rows.map(r => r.length));
+        if(maxCols > 1){
+          const columns = [];
+          for(let ci = 0; ci < maxCols; ci++){
+            const samples = rows.slice(0,6).map(r => String(r[ci]||'').trim()).filter(Boolean);
+            columns.push({ index:ci, samples });
+          }
+          pendingPasteData = { columns, rows: rows.map(r => r.map(c => String(c||'').trim())) };
+          openColModal(columns, pendingPasteData.rows);
+        } else {
+          const lines = rows.map(r => String(r[0]||'').trim()).filter(Boolean).join('\n');
+          uniqueInput.value = lines;
+          updateCounter();
+        }
+        dropFileName.textContent = '✓ ' + file.name;
+      } catch(e){
+        setAlert('error', 'Помилка читання XLSX: ' + e.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+
+  } else {
+    // txt / csv
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result;
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const hasTab = lines.some(l => l.includes('\t'));
+      const hasComma = lines.some(l => l.includes(','));
+
+      if(hasTab || hasComma){
+        const sep = hasTab ? '\t' : ',';
+        const rows = lines.map(l => l.split(sep).map(c => c.trim().replace(/^"|"$/g,'')));
+        const maxCols = Math.max(...rows.map(r => r.length));
+        if(maxCols > 1){
+          const columns = [];
+          for(let ci = 0; ci < maxCols; ci++){
+            const samples = rows.slice(0,6).map(r => r[ci]||'').filter(Boolean);
+            columns.push({ index:ci, samples });
+          }
+          pendingPasteData = { columns, rows };
+          openColModal(columns, rows);
+          dropFileName.textContent = '✓ ' + file.name;
+          return;
+        }
+      }
+
+      uniqueInput.value = lines.join('\n');
+      updateCounter();
+      dropFileName.textContent = '✓ ' + file.name;
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INLINE VALIDATION (FR-17)
+// ═══════════════════════════════════════════════════════
+const startEl = document.getElementById('start');
+const endEl   = document.getElementById('end');
+
+function validateDates(){
+  let ok = true;
+  if(!startEl.value){ fieldErr(startEl,'startErr','Вкажіть дату початку'); ok=false; }
+  else fieldOk(startEl,'startErr');
+  if(!endEl.value){ fieldErr(endEl,'endErr','Вкажіть дату закінчення'); ok=false; }
+  else if(startEl.value && endEl.value && new Date(startEl.value) > new Date(endEl.value)){
+    fieldErr(endEl,'endErr','Має бути не раніше дати початку'); ok=false;
+  } else if(endEl.value) fieldOk(endEl,'endErr');
+  return ok;
+}
+
+startEl.addEventListener('blur', validateDates);
+endEl.addEventListener('blur', validateDates);
+
+countInput.addEventListener('blur', () => {
+  const v = parseInt(countInput.value);
+  if(isNaN(v)||v<1){ fieldErr(countInput,'countErr','Мінімум 1 запис'); }
+  else if(v>100000){ fieldErr(countInput,'countErr','Максимум 100 000'); }
+  else fieldOk(countInput,'countErr');
+});
+
+const workStartEl = document.getElementById('workStart');
+const workEndEl   = document.getElementById('workEnd');
+
+function validateWork(){
+  const [wsH,wsM] = (workStartEl.value||'09:00').split(':').map(Number);
+  const [weH,weM] = (workEndEl.value||'19:00').split(':').map(Number);
+  const sm = wsH*60+wsM, em = weH*60+weM;
+  if(em <= sm){
+    fieldErr(workEndEl,'workErr','Кінець має бути пізніше початку. Нічні зміни не підтримуються.');
+    return false;
+  }
+  fieldOk(workEndEl,'workErr');
+  return true;
+}
+
+workStartEl.addEventListener('blur', validateWork);
+workEndEl.addEventListener('blur', validateWork);
+
+// Work range text
+function updateWorkText(){
+  document.getElementById('workRangeText').textContent =
+    (workStartEl.value||'09:00') + '–' + (workEndEl.value||'19:00');
+}
+workStartEl.addEventListener('input', updateWorkText);
+workEndEl.addEventListener('input', updateWorkText);
+
+// ═══════════════════════════════════════════════════════
+// FORMAT DATES
+// ═══════════════════════════════════════════════════════
+function formatDate(dt, fmt){
+  const y=dt.getFullYear(), m=dt.getMonth(), d=dt.getDate();
+  switch(fmt){
+    case 0: return `${y}-${pad(m+1)}-${pad(d)}`;
+    case 1: return `${pad(d)}.${pad(m+1)}.${y}`;
+    case 2: return `${pad(d)}/${pad(m+1)}/${y}`;
+    case 3: return `${pad(m+1)}/${pad(d)}/${y}`;
+  }
+}
+
+function formatTime(dt, fmt){
+  const h=dt.getHours(), m=dt.getMinutes(), s=dt.getSeconds();
+  if(fmt===2) return `${pad(h)}:${pad(m)}`;
+  const sep = fmt===0 ? ':' : '.';
+  return `${pad(h)}${sep}${pad(m)}${sep}${pad(s)}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// GENERATION (Web Worker-like via chunks + requestAnimationFrame)
+// ═══════════════════════════════════════════════════════
+function generateChunked(params, onDone){
+  const { uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt } = params;
+  const CHUNK = 2000;
+  const dates = [];
+
+  function buildDates(offset){
+    const end = Math.min(offset + CHUNK, targetCount);
+    for(let i = offset; i < end; i++){
+      const dayDate = workingDays[Math.floor(Math.random() * workingDays.length)];
+      const offsetMin = Math.floor(Math.random() * totalMinRange);
+      const totalMin = startMinutes + offsetMin;
+      dates.push(new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(),
+        Math.floor(totalMin/60), totalMin%60, Math.floor(Math.random()*60)));
+    }
+
+    const pct = Math.round((end / targetCount) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent =
+      `Генерація… ${end.toLocaleString()} / ${targetCount.toLocaleString()} записів`;
+
+    if(end < targetCount){
+      requestAnimationFrame(() => buildDates(end));
+    } else {
+      dates.sort((a,b) => a-b);
+
+      const result = [];
+      for(let i = 0; i < targetCount; i++){
+        const dt = dates[i];
+        result.push({
+          number: i+1,
+          unique: uniqueNumbers.length ? (uniqueNumbers[i] || '') : '',
+          dateTime: formatDate(dt, dateFmt) + ' ' + formatTime(dt, timeFmt),
+          fullDate: dt
+        });
+      }
+      onDone(result);
+    }
+  }
+
+  buildDates(0);
+}
+
+// ═══════════════════════════════════════════════════════
+// SUBMIT
+// ═══════════════════════════════════════════════════════
+document.getElementById('genForm').addEventListener('submit', e => {
+  e.preventDefault();
+  setAlert('error', null);
+  setAlert('warn', null);
+  hide('resultSection');
+
+  if(!validateDates()) return;
+  if(!validateWork()) return;
+
+  const startStr = startEl.value, endStr = endEl.value;
+  const count    = parseInt(countInput.value);
+  const dateFmt  = parseInt(document.getElementById('dateFmt').value);
+  const timeFmt  = parseInt(document.getElementById('timeFmt').value);
+
+  const [wsH,wsM] = (workStartEl.value||'09:00').split(':').map(Number);
+  const [weH,weM] = (workEndEl.value||'19:00').split(':').map(Number);
+  const startMinutes = wsH*60+wsM;
+  const endMinutes   = weH*60+weM;
+  const totalMinRange = endMinutes - startMinutes;
+
+  if(isNaN(count)||count<1||count>100000){
+    setAlert('error','Кількість має бути від 1 до 100 000.'); return;
+  }
+
+  const { valid: uniqueNumbers, invalid: invalidCount, duplicates: dupCount } =
+    parseUniqueNumbers(uniqueInput.value);
+
+  if(uniqueInput.value.trim() && !uniqueNumbers.length){
+    setAlert('error','У полі «Унікальні номери» немає жодного валідного номера (9–15 цифр).'); return;
+  }
+
+  const targetCount = uniqueNumbers.length > 0 ? uniqueNumbers.length : count;
+
+  // Warn if >10k
+  if(targetCount > 10000){
+    setAlert('warn', `Генерується ${targetCount.toLocaleString()} записів — може зайняти кілька секунд.`);
+  }
+
+  // Collect working days
+  const workingDays = [];
+  let cur = new Date(startStr);
+  const endDate = new Date(endStr);
+  while(cur <= endDate){
+    const d = cur.getDay();
+    if(d!==0&&d!==6) workingDays.push(new Date(cur));
+    cur.setDate(cur.getDate()+1);
+  }
+  if(!workingDays.length){
+    setAlert('error','У вибраному діапазоні немає робочих днів (Пн–Пт).'); return;
+  }
+
+  // Warn if too many records vs working days
+  if(targetCount > workingDays.length * totalMinRange){
+    setAlert('warn','Дуже багато записів для такого діапазону — деякі хвилини повторяться (це нормально).');
+  }
+
+  // Show progress
+  show('progressWrap');
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('genBtn').disabled = true;
+
+  requestAnimationFrame(() => {
+    generateChunked({
+      uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt
+    }, result => {
+      generatedData = result;
+      hide('progressWrap');
+      document.getElementById('genBtn').disabled = false;
+
+      // Build warning string
+      let warnings = [];
+      if(dupCount)     warnings.push(`${dupCount} дублів видалено`);
+      if(invalidCount) warnings.push(`${invalidCount} невалідних рядків пропущено`);
+      if(warnings.length) setAlert('warn', warnings.join(' · '));
+      else setAlert('warn', null);
+
+      renderResult(targetCount, workingDays.length, totalMinRange, wsH, wsM, weH, weM,
+                   uniqueNumbers.length > 0, dupCount, invalidCount);
+      saveState();
+    });
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// RENDER RESULT
+// ═══════════════════════════════════════════════════════
+function renderResult(targetCount, workDaysCount, totalMinRange, wsH, wsM, weH, weM, hasUnique, dups, inv){
+  const MAX_PREV = 500;
+  const tbody = document.getElementById('previewBody');
+  tbody.innerHTML = '';
+
+  const toShow = generatedData.slice(0, MAX_PREV);
+  const frag = document.createDocumentFragment();
   toShow.forEach(row => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${row.number}</td>
-      <td>${row.unique || ''}</td>
-      <td>${row.dateTime}</td>
-    `;
-    previewBody.appendChild(tr);
+    tr.innerHTML = `<td>${row.number}</td><td>${row.unique||'—'}</td><td>${row.dateTime}</td>`;
+    frag.appendChild(tr);
   });
+  tbody.appendChild(frag);
 
+  // Stats chips
   const uniqueDays = new Set(generatedData.map(r => r.dateTime.split(' ')[0])).size;
-  let txt = `Згенеровано <strong>${generatedData.length}</strong> записів за <strong>${uniqueDays}</strong> різних робочих днів (Пн–Пт, випадковий розподіл, ${workHoursText})`;
-  if (generatedData.length > MAX_PREVIEW) {
-    txt += `, показано перші ${MAX_PREVIEW}`;
-  }
-  resultInfo.innerHTML = txt;
+  const statsRow = document.getElementById('statsRow');
+  statsRow.innerHTML = `
+    <div class="stat-chip"><span>Записів:</span>${generatedData.length.toLocaleString()}</div>
+    <div class="stat-chip"><span>Робочих днів:</span>${uniqueDays}</div>
+    <div class="stat-chip"><span>Діапазон:</span>${pad(wsH)}:${pad(wsM)}–${pad(weH)}:${pad(weM)}</div>
+    ${dups ? `<div class="stat-chip"><span>Видалено дублів:</span>${dups}</div>` : ''}
+    ${inv  ? `<div class="stat-chip"><span>Пропущено:</span>${inv}</div>` : ''}`;
+
+  setText('resultInfo',
+    `Готово — <strong>${generatedData.length.toLocaleString()}</strong> записів` +
+    (generatedData.length > MAX_PREV ? `, показано ${MAX_PREV}` : '')
+  );
+
+  show('resultSection');
+  document.getElementById('resultSection').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-form.addEventListener('submit', e => {
-  e.preventDefault();
-  errorBox.classList.add('hidden');
-  resultSection.classList.add('hidden');
-  uniqueInfo.textContent = '';
-
-  const startStr = document.getElementById('start').value;
-  const endStr   = document.getElementById('end').value;
-  const count    = parseInt(countInput.value, 10);
-  const dateFmt  = parseInt(document.getElementById('dateFmt').value, 10);
-  const timeFmt  = parseInt(document.getElementById('timeFmt').value, 10);
-  const uniqueRaw = uniqueInput.value;
-
-  const workStartVal = workStartInput.value || '09:00';
-  const workEndVal   = workEndInput.value || '19:00';
-
-  // Валідація робочого діапазону годин
-  const [wsH, wsM] = workStartVal.split(':').map(Number);
-  const [weH, weM] = workEndVal.split(':').map(Number);
-
-  const startMinutes = wsH * 60 + wsM;
-  const endMinutes   = weH * 60 + weM;
-
-  if (isNaN(startMinutes) || isNaN(endMinutes)) {
-    showError('Невірний формат робочих годин.');
-    return;
-  }
-
-  if (endMinutes <= startMinutes) {
-    showError('Кінець робочого дня має бути пізніше початку.');
-    return;
-  }
-
-  const totalMinutesRange = endMinutes - startMinutes;
-  const workHoursFloat = totalMinutesRange / 60;
-  const workHoursText = workStartVal + '–' + workEndVal + ` (~${workHoursFloat.toFixed(2)} год)`; 
-
-  if (!startStr || !endStr) {
-    showError('Вкажіть обидві дати.');
-    return;
-  }
-
-  const start = new Date(startStr);
-  const end   = new Date(endStr);
-
-  if (start > end) {
-    showError('Дата початку не може бути пізніше дати закінчення.');
-    return;
-  }
-
-  if (isNaN(count) || count < 1 || count > 10000) {
-    showError('Кількість має бути від 1 до 10000.');
-    return;
-  }
-
-  const { valid: uniqueNumbers, invalid: invalidCount } = parseUniqueNumbers(uniqueRaw);
-
-  let useUnique = uniqueNumbers.length > 0;
-  let targetCount = count;
-
-  if (uniqueRaw.trim().length > 0 && !useUnique) {
-    showError('У полі «Унікальні номери» немає жодного валідного номера (очікується 9–15 цифр у рядку).');
-    return;
-  }
-
-  if (useUnique) {
-    targetCount = uniqueNumbers.length;
-    let msg = `Валідних унікальних номерів: ${uniqueNumbers.length}.`;
-    if (invalidCount > 0) {
-      msg += ` Пропущено рядків: ${invalidCount} (невірний формат/довжина).`;
-    }
-    uniqueInfo.innerHTML = msg;
-  }
-
-  const workingDays = [];
-  let current = new Date(start);
-  while (current <= end) {
-    const day = current.getDay();
-    if (day !== 0 && day !== 6) {
-      workingDays.push(new Date(current));
-    }
-    current.setDate(current.getDate() + 1);
-  }
-
-  if (workingDays.length === 0) {
-    showError('У вибраному періоді немає робочих днів (Пн–Пт).');
-    return;
-  }
-
-  // 1) Генеруємо масив дат/часів
-  const dates = [];
-  for (let i = 0; i < targetCount; i++) {
-    const randomDayIndex = Math.floor(Math.random() * workingDays.length);
-    const dayDate = workingDays[randomDayIndex];
-
-    const y  = dayDate.getFullYear();
-    const m  = dayDate.getMonth();
-    const dd = dayDate.getDate();
-
-    const randomMinutesOffset = Math.floor(Math.random() * totalMinutesRange);
-    const totalMinutesForDay = startMinutes + randomMinutesOffset;
-    const h   = Math.floor(totalMinutesForDay / 60);
-    const min = totalMinutesForDay % 60;
-    const sec = Math.floor(Math.random() * 60);
-
-    dates.push(new Date(y, m, dd, h, min, sec));
-  }
-
-  // 2) Сортуємо дати за часом
-  dates.sort((a, b) => a - b); // [web:1][web:7]
-
-  // 3) Формуємо generatedData: унікальні в своєму порядку, дати – відсортовані
-  generatedData = [];
-  let globalIndex = 1;
-
-  for (let i = 0; i < targetCount; i++) {
-    const dt = dates[i];
-
-    const y  = dt.getFullYear();
-    const m  = dt.getMonth();
-    const dd = dt.getDate();
-    const h  = dt.getHours();
-    const min = dt.getMinutes();
-    const sec = dt.getSeconds();
-
-    let datePart;
-    switch (dateFmt) {
-      case 0: datePart = `${y}-${pad(m+1)}-${pad(dd)}`; break;
-      case 1: datePart = `${pad(dd)}.${pad(m+1)}.${y}`; break;
-      case 2: datePart = `${pad(dd)}/${pad(m+1)}/${y}`; break;
-      case 3: datePart = `${pad(m+1)}/${pad(dd)}/${y}`; break;
-    }
-
-    let timePart;
-    if (timeFmt === 2) {
-      timePart = `${pad(h)}:${pad(min)}`;
-    } else {
-      const sep = timeFmt === 0 ? ':' : '.';
-      timePart = `${pad(h)}${sep}${pad(min)}${sep}${pad(sec)}`;
-    }
-
-    const dateTimeStr = datePart + ' ' + timePart;
-
-    generatedData.push({
-      number: globalIndex++,
-      unique: useUnique ? (uniqueNumbers[i] || '') : '',
-      dateTime: dateTimeStr,
-      fullDate: dt
-    });
-  }
-
-  showPreview(workHoursText);
-  resultSection.classList.remove('hidden');
+// ═══════════════════════════════════════════════════════
+// COPY DATETIMES (FR-15)
+// ═══════════════════════════════════════════════════════
+document.getElementById('copyDatesBtn').addEventListener('click', function(){
+  if(!generatedData.length) return;
+  const text = generatedData.map(r => r.dateTime).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    this.textContent = '✓ Скопійовано!';
+    this.classList.add('copied');
+    setTimeout(() => {
+      this.textContent = '📋 Копіювати DateTime';
+      this.classList.remove('copied');
+    }, 2000);
+  });
 });
 
-// Очистити форму
+// ═══════════════════════════════════════════════════════
+// CLEAR
+// ═══════════════════════════════════════════════════════
 document.getElementById('clearBtn').addEventListener('click', () => {
-  form.reset();
+  document.getElementById('genForm').reset();
   countInput.disabled = false;
   countInput.value = 100;
-  countHint.textContent = 'Якщо заповнене поле «Унікальні номери» – кількість визначається по їх кількості.';
-  uniqueInfo.textContent = '';
-  errorBox.classList.add('hidden');
-  resultSection.classList.add('hidden');
+  workStartEl.value = '09:00';
+  workEndEl.value = '19:00';
+  uniqueInput.value = '';
+  dropFileName.textContent = '';
+  updateWorkText();
+  updateCounter();
+  setAlert('error', null);
+  setAlert('warn', null);
+  hide('resultSection');
+  hide('progressWrap');
   generatedData = [];
-
-  // Скидаємо і діапазон робочих годин до дефолту
-  workStartInput.value = '09:00';
-  workEndInput.value = '19:00';
-  updateCurrentWorkRangeText();
+  ['start','end','count','workStart','workEnd'].forEach(id => {
+    const el = document.getElementById(id);
+    fieldReset(el, id+'Err');
+  });
+  localStorage.removeItem('ptg-form');
 });
 
-// CSV
+// ═══════════════════════════════════════════════════════
+// FILENAME HELPER (FR-9: use fullDate)
+// ═══════════════════════════════════════════════════════
+function getFilename(ext){
+  if(!generatedData.length) return `ptg.${ext}`;
+  const s = generatedData[0].fullDate;
+  const e = generatedData[generatedData.length-1].fullDate;
+  const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+  return `ptg-${fmt(s)}-${fmt(e)}.${ext}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// DOWNLOAD CSV
+// ═══════════════════════════════════════════════════════
 document.getElementById('downloadCsv').addEventListener('click', () => {
-  if (!generatedData.length) return;
-
-  const start = generatedData[0].dateTime.split(' ')[0].replace(/\D/g,'').slice(0,8);
-  const end   = generatedData[generatedData.length-1].dateTime.split(' ')[0].replace(/\D/g,'').slice(0,8);
-  const filename = `ptg-work-times-${start}-${end}.csv`;
-
+  if(!generatedData.length) return;
   let csv = 'Number,Unique,DateTime\n';
   generatedData.forEach(r => {
-    const uniqueEscaped = (r.unique || '').replace(/"/g, '""');
-    const dtEscaped     = r.dateTime.replace(/"/g, '""');
-    csv += `${r.number},"${uniqueEscaped}","${dtEscaped}"\n`;
+    const u = (r.unique||'').replace(/"/g,'""');
+    const d = r.dateTime.replace(/"/g,'""');
+    csv += `${r.number},"${u}","${d}"\n`;
   });
-
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = getFilename('csv');
+  a.click();
+  URL.revokeObjectURL(a.href);
 });
 
-// XLSX
+// ═══════════════════════════════════════════════════════
+// DOWNLOAD XLSX
+// ═══════════════════════════════════════════════════════
 document.getElementById('downloadXlsx').addEventListener('click', () => {
-  if (!generatedData.length) return;
-
-  const start = generatedData[0].dateTime.split(' ')[0].replace(/\D/g,'').slice(0,8);
-  const end   = generatedData[generatedData.length-1].dateTime.split(' ')[0].replace(/\D/g,'').slice(0,8);
-  const filename = `ptg-work-times-${start}-${end}.xlsx`;
-
-  const ws_data = [
-    ['Number', 'Unique', 'DateTime'],
-    ...generatedData.map(r => [r.number, r.unique || '', r.dateTime])
-  ];
-
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  if(!generatedData.length) return;
+  const data = [['Number','Unique','DateTime'],
+    ...generatedData.map(r => [r.number, r.unique||'', r.dateTime])];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:8},{wch:18},{wch:22}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Work Times');
-  ws['!cols'] = [{wch:8}, {wch:18}, {wch:22}];
-
-  XLSX.writeFile(wb, filename);
+  XLSX.writeFile(wb, getFilename('xlsx'));
 });
 
-// ініціальний стан
-updateCountLock();
-updateCurrentWorkRangeText();
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+loadState();
+updateWorkText();
+updateCounter();
 </script>
-
 </body>
 </html>
