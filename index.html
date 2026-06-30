@@ -60,7 +60,7 @@ input[type=date],input[type=number],input[type=time],select,textarea{
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.12);}
 input.invalid{border-color:var(--error)!important;box-shadow:0 0 0 3px rgba(249,115,115,.12)!important;}
 input.valid{border-color:var(--success)!important;}
-input[disabled]{background:#e9e1ff;color:var(--muted);cursor:not-allowed;}
+input[disabled]{background:#e9e1ff;color:var(--muted);cursor:not-allowed;opacity:.55;}
 textarea{resize:vertical;min-height:130px;font-family:"JetBrains Mono",ui-monospace,monospace;}
 
 /* DROPZONE */
@@ -173,7 +173,7 @@ tbody tr:hover{background:var(--accent-soft);}
 <!-- HEADER -->
 <header>
   <div class="title-block">
-    <span class="badge">⚙️ v2.0</span>
+    <span class="badge">⚙️ v2.1</span>
     <h1>ПоТужний Генератор ДатГодин</h1>
     <div class="subtitle">Аналіз · Генерація · Excel · Drag&amp;Drop</div>
   </div>
@@ -244,6 +244,7 @@ tbody tr:hover{background:var(--accent-soft);}
           <option value="0" selected>HH:MM:SS</option>
           <option value="1">HH.MM.SS</option>
           <option value="2">HH:MM</option>
+          <option value="3">Без часу</option>
         </select>
       </div>
 
@@ -433,7 +434,6 @@ function parseUniqueNumbers(raw){
   let invalid = 0, duplicates = 0;
 
   for(let line of lines){
-    // Handle tab-separated (paste from Excel) — column selection handled separately
     const trimmed = line.trim();
     if(!trimmed) continue;
     const digits = trimmed.replace(/\D/g,'');
@@ -498,7 +498,7 @@ function updateCountLock(validCount, dups, inv){
 
 uniqueInput.addEventListener('input', () => {
   updateCounter();
-  saveState(); // also persist textarea? skip — too large
+  saveState();
 });
 
 // ═══════════════════════════════════════════════════════
@@ -508,10 +508,9 @@ uniqueInput.addEventListener('paste', e => {
   const text = (e.clipboardData || window.clipboardData).getData('text');
   if(!text) return;
 
-  // Detect tab-separator
   const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
   const hasTab = lines.some(l => l.includes('\t'));
-  if(!hasTab) return; // single column — normal paste
+  if(!hasTab) return;
 
   e.preventDefault();
 
@@ -519,13 +518,11 @@ uniqueInput.addEventListener('paste', e => {
   const maxCols = Math.max(...rows.map(r => r.length));
 
   if(maxCols < 2){
-    // only one col effectively
     uniqueInput.value = rows.map(r => r[0]).join('\n');
     updateCounter();
     return;
   }
 
-  // Build column samples for modal
   const columns = [];
   for(let ci = 0; ci < maxCols; ci++){
     const samples = rows.slice(0,5).map(r => r[ci] || '').filter(Boolean);
@@ -553,7 +550,6 @@ function openColModal(columns, rows){
     item.className = 'col-item' + (i === 0 ? ' selected' : '');
     item.dataset.idx = i;
 
-    // Check how many look like phone numbers
     const phoneCount = col.samples.filter(s => /^[0-9]{9,15}$/.test(s.replace(/\D/g,''))).length;
     const phoneHint  = phoneCount > 0 ? ` 📞 ${phoneCount}/${col.samples.length} схожі на номери` : '';
 
@@ -570,7 +566,6 @@ function openColModal(columns, rows){
       selectedColIdx = i;
     });
 
-    // Auto-select best column (most phone-like)
     if(i === 0 || phoneCount > (columns[selectedColIdx]?.phoneCount || 0)){
       col.phoneCount = phoneCount;
       if(phoneCount > 0){
@@ -582,7 +577,6 @@ function openColModal(columns, rows){
     list.appendChild(item);
   });
 
-  // Highlight best
   list.querySelectorAll('.col-item').forEach(el => el.classList.remove('selected'));
   list.children[selectedColIdx]?.classList.add('selected');
 
@@ -669,7 +663,6 @@ function handleFile(file){
     reader.readAsArrayBuffer(file);
 
   } else {
-    // txt / csv
     const reader = new FileReader();
     reader.onload = ev => {
       const text = ev.target.result;
@@ -733,6 +726,7 @@ const workStartEl = document.getElementById('workStart');
 const workEndEl   = document.getElementById('workEnd');
 
 function validateWork(){
+  if(isNoTimeMode()) return true;
   const [wsH,wsM] = (workStartEl.value||'09:00').split(':').map(Number);
   const [weH,weM] = (workEndEl.value||'19:00').split(':').map(Number);
   const sm = wsH*60+wsM, em = weH*60+weM;
@@ -747,13 +741,38 @@ function validateWork(){
 workStartEl.addEventListener('blur', validateWork);
 workEndEl.addEventListener('blur', validateWork);
 
-// Work range text
 function updateWorkText(){
   document.getElementById('workRangeText').textContent =
     (workStartEl.value||'09:00') + '–' + (workEndEl.value||'19:00');
 }
 workStartEl.addEventListener('input', updateWorkText);
 workEndEl.addEventListener('input', updateWorkText);
+
+// ═══════════════════════════════════════════════════════
+// NO-TIME MODE TOGGLE (timeFmt === "3")
+// ═══════════════════════════════════════════════════════
+const timeFmtEl = document.getElementById('timeFmt');
+
+function isNoTimeMode(){
+  return parseInt(timeFmtEl.value) === 3;
+}
+
+function applyNoTimeMode(){
+  const noTime = isNoTimeMode();
+  workStartEl.disabled = noTime;
+  workEndEl.disabled   = noTime;
+  if(noTime){
+    fieldReset(workEndEl, 'workErr');
+    document.getElementById('workRangeText').textContent = '— (час не генерується)';
+  } else {
+    updateWorkText();
+  }
+}
+
+timeFmtEl.addEventListener('change', () => {
+  applyNoTimeMode();
+  saveState();
+});
 
 // ═══════════════════════════════════════════════════════
 // FORMAT DATES
@@ -771,26 +790,86 @@ function formatDate(dt, fmt){
 function formatTime(dt, fmt){
   const h=dt.getHours(), m=dt.getMinutes(), s=dt.getSeconds();
   if(fmt===2) return `${pad(h)}:${pad(m)}`;
+  if(fmt===3) return '';
   const sep = fmt===0 ? ':' : '.';
   return `${pad(h)}${sep}${pad(m)}${sep}${pad(s)}`;
 }
 
 // ═══════════════════════════════════════════════════════
-// GENERATION (Web Worker-like via chunks + requestAnimationFrame)
+// WEIGHTED RANDOM HELPERS
+// ═══════════════════════════════════════════════════════
+
+function jitter(base, spreadPct){
+  const factor = 1 + (Math.random()*2 - 1) * spreadPct;
+  return base * factor;
+}
+
+function weightedPick(weights){
+  const total = weights.reduce((a,b) => a+b, 0);
+  let r = Math.random() * total;
+  for(let i = 0; i < weights.length; i++){
+    if(r < weights[i]) return i;
+    r -= weights[i];
+  }
+  return weights.length - 1;
+}
+
+// Зростаючий тренд по днях зі стрибками: ранні дні мають менше вагу,
+// пізні — більше, з широким випадковим розкидом (spike-фактор).
+function buildDayWeights(dayCount){
+  const weights = [];
+  for(let i = 0; i < dayCount; i++){
+    const progress = dayCount > 1 ? i / (dayCount - 1) : 1; // 0..1
+    const base  = Math.pow(progress, 1.6) * 9 + 1; // ~1 .. ~10, перші дні явно менші
+    const spike = jitter(base, 0.55); // стрибки ±55%
+    weights.push(Math.max(0.2, spike));
+  }
+  return weights;
+}
+
+// Нерівномірна "форма дня": пік ближче до другої половини робочого часу + шум.
+function buildMinuteWeight(minuteOffset, totalMinRange){
+  if(totalMinRange <= 0) return 1;
+  const t = minuteOffset / totalMinRange;
+  const shape = Math.sin(Math.PI * Math.pow(t, 0.85));
+  const base  = 0.35 + shape * 1.0;
+  return jitter(base, 0.6);
+}
+
+// ═══════════════════════════════════════════════════════
+// GENERATION (chunked via requestAnimationFrame)
 // ═══════════════════════════════════════════════════════
 function generateChunked(params, onDone){
-  const { uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt } = params;
+  const { uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange,
+          dateFmt, timeFmt, noTime } = params;
   const CHUNK = 2000;
   const dates = [];
+
+  const dayWeights = buildDayWeights(workingDays.length);
 
   function buildDates(offset){
     const end = Math.min(offset + CHUNK, targetCount);
     for(let i = offset; i < end; i++){
-      const dayDate = workingDays[Math.floor(Math.random() * workingDays.length)];
-      const offsetMin = Math.floor(Math.random() * totalMinRange);
-      const totalMin = startMinutes + offsetMin;
+      const dayIdx  = weightedPick(dayWeights);
+      const dayDate = workingDays[dayIdx];
+
+      if(noTime){
+        dates.push(new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 0,0,0));
+        continue;
+      }
+
+      const CANDIDATES = 5;
+      let bestMin = 0, bestW = -1;
+      for(let c = 0; c < CANDIDATES; c++){
+        const cand = Math.floor(Math.random() * totalMinRange);
+        const w = buildMinuteWeight(cand, totalMinRange) * Math.random();
+        if(w > bestW){ bestW = w; bestMin = cand; }
+      }
+
+      const totalMin = startMinutes + bestMin;
+      const sec = Math.floor(Math.random()*60);
       dates.push(new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(),
-        Math.floor(totalMin/60), totalMin%60, Math.floor(Math.random()*60)));
+        Math.floor(totalMin/60), totalMin%60, sec));
     }
 
     const pct = Math.round((end / targetCount) * 100);
@@ -806,10 +885,11 @@ function generateChunked(params, onDone){
       const result = [];
       for(let i = 0; i < targetCount; i++){
         const dt = dates[i];
+        const timePart = noTime ? '' : (' ' + formatTime(dt, timeFmt));
         result.push({
           number: i+1,
           unique: uniqueNumbers.length ? (uniqueNumbers[i] || '') : '',
-          dateTime: formatDate(dt, dateFmt) + ' ' + formatTime(dt, timeFmt),
+          dateTime: formatDate(dt, dateFmt) + timePart,
           fullDate: dt
         });
       }
@@ -835,13 +915,18 @@ document.getElementById('genForm').addEventListener('submit', e => {
   const startStr = startEl.value, endStr = endEl.value;
   const count    = parseInt(countInput.value);
   const dateFmt  = parseInt(document.getElementById('dateFmt').value);
-  const timeFmt  = parseInt(document.getElementById('timeFmt').value);
+  const timeFmt  = parseInt(timeFmtEl.value);
+  const noTime   = isNoTimeMode();
 
   const [wsH,wsM] = (workStartEl.value||'09:00').split(':').map(Number);
   const [weH,weM] = (workEndEl.value||'19:00').split(':').map(Number);
   const startMinutes = wsH*60+wsM;
   const endMinutes   = weH*60+weM;
-  const totalMinRange = endMinutes - startMinutes;
+  const totalMinRange = noTime ? 0 : (endMinutes - startMinutes);
+
+  if(!noTime && totalMinRange <= 0){
+    setAlert('error','Робочі години некоректні: кінець має бути пізніше початку.'); return;
+  }
 
   if(isNaN(count)||count<1||count>100000){
     setAlert('error','Кількість має бути від 1 до 100 000.'); return;
@@ -856,12 +941,10 @@ document.getElementById('genForm').addEventListener('submit', e => {
 
   const targetCount = uniqueNumbers.length > 0 ? uniqueNumbers.length : count;
 
-  // Warn if >10k
   if(targetCount > 10000){
     setAlert('warn', `Генерується ${targetCount.toLocaleString()} записів — може зайняти кілька секунд.`);
   }
 
-  // Collect working days
   const workingDays = [];
   let cur = new Date(startStr);
   const endDate = new Date(endStr);
@@ -874,25 +957,22 @@ document.getElementById('genForm').addEventListener('submit', e => {
     setAlert('error','У вибраному діапазоні немає робочих днів (Пн–Пт).'); return;
   }
 
-  // Warn if too many records vs working days
-  if(targetCount > workingDays.length * totalMinRange){
+  if(!noTime && targetCount > workingDays.length * totalMinRange){
     setAlert('warn','Дуже багато записів для такого діапазону — деякі хвилини повторяться (це нормально).');
   }
 
-  // Show progress
   show('progressWrap');
   document.getElementById('progressBar').style.width = '0%';
   document.getElementById('genBtn').disabled = true;
 
   requestAnimationFrame(() => {
     generateChunked({
-      uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt
+      uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt, noTime
     }, result => {
       generatedData = result;
       hide('progressWrap');
       document.getElementById('genBtn').disabled = false;
 
-      // Build warning string
       let warnings = [];
       if(dupCount)     warnings.push(`${dupCount} дублів видалено`);
       if(invalidCount) warnings.push(`${invalidCount} невалідних рядків пропущено`);
@@ -900,7 +980,7 @@ document.getElementById('genForm').addEventListener('submit', e => {
       else setAlert('warn', null);
 
       renderResult(targetCount, workingDays.length, totalMinRange, wsH, wsM, weH, weM,
-                   uniqueNumbers.length > 0, dupCount, invalidCount);
+                   uniqueNumbers.length > 0, dupCount, invalidCount, noTime);
       saveState();
     });
   });
@@ -909,7 +989,7 @@ document.getElementById('genForm').addEventListener('submit', e => {
 // ═══════════════════════════════════════════════════════
 // RENDER RESULT
 // ═══════════════════════════════════════════════════════
-function renderResult(targetCount, workDaysCount, totalMinRange, wsH, wsM, weH, weM, hasUnique, dups, inv){
+function renderResult(targetCount, workDaysCount, totalMinRange, wsH, wsM, weH, weM, hasUnique, dups, inv, noTime){
   const MAX_PREV = 500;
   const tbody = document.getElementById('previewBody');
   tbody.innerHTML = '';
@@ -923,13 +1003,12 @@ function renderResult(targetCount, workDaysCount, totalMinRange, wsH, wsM, weH, 
   });
   tbody.appendChild(frag);
 
-  // Stats chips
   const uniqueDays = new Set(generatedData.map(r => r.dateTime.split(' ')[0])).size;
   const statsRow = document.getElementById('statsRow');
   statsRow.innerHTML = `
     <div class="stat-chip"><span>Записів:</span>${generatedData.length.toLocaleString()}</div>
     <div class="stat-chip"><span>Робочих днів:</span>${uniqueDays}</div>
-    <div class="stat-chip"><span>Діапазон:</span>${pad(wsH)}:${pad(wsM)}–${pad(weH)}:${pad(weM)}</div>
+    <div class="stat-chip"><span>Діапазон:</span>${noTime ? 'без часу' : (pad(wsH)+':'+pad(wsM)+'–'+pad(weH)+':'+pad(weM))}</div>
     ${dups ? `<div class="stat-chip"><span>Видалено дублів:</span>${dups}</div>` : ''}
     ${inv  ? `<div class="stat-chip"><span>Пропущено:</span>${inv}</div>` : ''}`;
 
@@ -969,6 +1048,7 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   workEndEl.value = '19:00';
   uniqueInput.value = '';
   dropFileName.textContent = '';
+  applyNoTimeMode();
   updateWorkText();
   updateCounter();
   setAlert('error', null);
@@ -1031,6 +1111,7 @@ document.getElementById('downloadXlsx').addEventListener('click', () => {
 // INIT
 // ═══════════════════════════════════════════════════════
 loadState();
+applyNoTimeMode();
 updateWorkText();
 updateCounter();
 </script>
