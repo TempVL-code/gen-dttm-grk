@@ -260,6 +260,18 @@ tbody tr:hover{background:var(--accent-soft);}
         <div class="field-error hidden" id="workErr"></div>
       </div>
 
+      <!-- Duration range -->
+      <div>
+        <label>Duration — від</label>
+        <input type="number" id="durMin" min="0" value="10">
+        <div class="hint">Мінімальне значення</div>
+      </div>
+      <div>
+        <label>Duration — до</label>
+        <input type="number" id="durMax" min="0" value="300">
+        <div class="hint">Максимальне значення</div>
+      </div>
+
       <!-- Textarea + drag&drop -->
       <div class="full-width">
         <label>Унікальні номери <span style="color:var(--muted);font-weight:400;">(опціонально)</span></label>
@@ -317,6 +329,7 @@ tbody tr:hover{background:var(--accent-soft);}
         <thead>
           <tr>
             <th>№</th>
+            <th>Duration</th>
             <th>Унікальний</th>
             <th>DateTime</th>
           </tr>
@@ -355,7 +368,7 @@ themeBtn.addEventListener('click', () => setTheme(html.dataset.theme === 'dark' 
 // ═══════════════════════════════════════════════════════
 // PERSIST FORM STATE (FR-14)
 // ═══════════════════════════════════════════════════════
-const PERSIST_KEYS = ['start','end','count','dateFmt','timeFmt','workStart','workEnd'];
+const PERSIST_KEYS = ['start','end','count','dateFmt','timeFmt','workStart','workEnd','durMin','durMax'];
 
 function saveState(){
   const state = {};
@@ -841,7 +854,7 @@ function buildMinuteWeight(minuteOffset, totalMinRange){
 // ═══════════════════════════════════════════════════════
 function generateChunked(params, onDone){
   const { uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange,
-          dateFmt, timeFmt, noTime } = params;
+          dateFmt, timeFmt, noTime, durMin, durMax } = params;
   const CHUNK = 2000;
   const dates = [];
 
@@ -888,6 +901,7 @@ function generateChunked(params, onDone){
         const timePart = noTime ? '' : (' ' + formatTime(dt, timeFmt));
         result.push({
           number: i+1,
+          duration: durMin + Math.floor(Math.random() * (durMax - durMin + 1)),
           unique: uniqueNumbers.length ? (uniqueNumbers[i] || '') : '',
           dateTime: formatDate(dt, dateFmt) + timePart,
           fullDate: dt
@@ -917,6 +931,10 @@ document.getElementById('genForm').addEventListener('submit', e => {
   const dateFmt  = parseInt(document.getElementById('dateFmt').value);
   const timeFmt  = parseInt(timeFmtEl.value);
   const noTime   = isNoTimeMode();
+
+  const durMin = parseInt(document.getElementById('durMin').value) || 0;
+  const durMax = parseInt(document.getElementById('durMax').value) || 0;
+  if(durMax < durMin){ setAlert('error','Duration "до" має бути більше або рівне "від".'); return; }
 
   const [wsH,wsM] = (workStartEl.value||'09:00').split(':').map(Number);
   const [weH,weM] = (workEndEl.value||'19:00').split(':').map(Number);
@@ -967,7 +985,8 @@ document.getElementById('genForm').addEventListener('submit', e => {
 
   requestAnimationFrame(() => {
     generateChunked({
-      uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt, noTime
+      uniqueNumbers, targetCount, workingDays, startMinutes, totalMinRange, dateFmt, timeFmt, noTime,
+      durMin, durMax
     }, result => {
       generatedData = result;
       hide('progressWrap');
@@ -998,7 +1017,7 @@ function renderResult(targetCount, workDaysCount, totalMinRange, wsH, wsM, weH, 
   const frag = document.createDocumentFragment();
   toShow.forEach(row => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${row.number}</td><td>${row.unique||'—'}</td><td>${row.dateTime}</td>`;
+    tr.innerHTML = `<td>${row.number}</td><td>${row.duration}</td><td>${row.unique||'—'}</td><td>${row.dateTime}</td>`;
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
@@ -1079,11 +1098,11 @@ function getFilename(ext){
 // ═══════════════════════════════════════════════════════
 document.getElementById('downloadCsv').addEventListener('click', () => {
   if(!generatedData.length) return;
-  let csv = 'Number,Unique,DateTime\n';
+  let csv = 'Number,Duration,Unique,DateTime\n';
   generatedData.forEach(r => {
     const u = (r.unique||'').replace(/"/g,'""');
     const d = r.dateTime.replace(/"/g,'""');
-    csv += `${r.number},"${u}","${d}"\n`;
+    csv += `${r.number},${r.duration},"${u}","${d}"\n`;
   });
   const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a');
@@ -1098,10 +1117,10 @@ document.getElementById('downloadCsv').addEventListener('click', () => {
 // ═══════════════════════════════════════════════════════
 document.getElementById('downloadXlsx').addEventListener('click', () => {
   if(!generatedData.length) return;
-  const data = [['Number','Unique','DateTime'],
-    ...generatedData.map(r => [r.number, r.unique||'', r.dateTime])];
+  const data = [['Number','Duration','Unique','DateTime'],
+    ...generatedData.map(r => [r.number, r.duration, r.unique||'', r.dateTime])];
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws['!cols'] = [{wch:8},{wch:18},{wch:22}];
+  ws['!cols'] = [{wch:8},{wch:10},{wch:18},{wch:22}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Work Times');
   XLSX.writeFile(wb, getFilename('xlsx'));
